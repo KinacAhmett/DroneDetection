@@ -5,7 +5,7 @@ import sys
 
 
 import pdb
-from Codes.tracking_wrapper.drtracker import fhog
+from Codes.tracking_wrapper.drtracker.fhog import func1, func2, func3, func4
 
 
 '''
