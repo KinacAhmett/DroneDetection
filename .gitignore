@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenv
+venv*/
+.env/
+
+# Weights / big artifacts
+Codes/detect_wrapper/weights/
+*.pt
+*.onnx
+*.zip
+*.mp4
+Codes/testvideo/
+runs/
+*/runs/
+data/
+*/data/
+
+# Misc
+allfiles*.txt
+findOe.py

@@ -4,9 +4,10 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-from Codes.detect_wrapper.utils.datasets import letterbox
-from Codes.detect_wrapper.utils.general import (
+from detect_wrapper.utils.datasets import letterbox
+from detect_wrapper.utils.general import (
     non_max_suppression, make_divisible, scale_coords
 )
 
@@ -87,20 +88,29 @@ class SPP(nn.Module):
 class Focus(nn.Module):
     # Focus wh information into c-space
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
-        super(Focus, self).__init__()
-        self.conv = Conv(c1 * 4, c2, k, s, p, g, act)
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels=6, out_channels=64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.SiLU()
+        )
 
-    def forward(self, x):  # x(b,c,w,h) -> y(b,4c,w/2,h/2)
-        return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
+    def forward(self, x):
+        return self.conv(x)
 
 
 class Concat(nn.Module):
-    # Concatenate a list of tensors along dimension
     def __init__(self, dimension=1):
         super(Concat, self).__init__()
         self.d = dimension
 
     def forward(self, x):
+        # Tüm tensörleri en küçük boyuta indir
+        min_h = min([t.shape[2] for t in x])
+        min_w = min([t.shape[3] for t in x])
+        x = [F.interpolate(t, size=(min_h, min_w), mode='nearest') if (t.shape[2] != min_h or t.shape[3] != min_w) else t for t in x]
+        for i, t in enumerate(x):
+            print(f"Concat input {i}: {t.shape}")
         return torch.cat(x, self.d)
 
 
