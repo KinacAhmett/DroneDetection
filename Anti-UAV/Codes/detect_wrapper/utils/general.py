@@ -28,6 +28,29 @@ import pdb
 from .google_utils import gsutil_getsize
 from .torch_utils import is_parallel, init_torch_seeds
 
+
+def increment_path(path, exist_ok=False, sep='', mkdir=False):
+    """
+    Automatically increment path, e.g. runs/train/exp → runs/train/exp1, exp2, etc.
+    Args:
+        path (str or Path): base path
+        exist_ok (bool): if True, return path even if exists
+        sep (str): separator between name and number
+        mkdir (bool): if True, create the directory
+    Returns:
+        Path: new path with incremented suffix
+    """
+    p = Path(path)
+    if p.exists() and not exist_ok:
+        # search for existing directories with same stem
+        dirs = [d for d in p.parent.iterdir() if d.stem.startswith(p.stem + sep)]
+        matches = [re.search(rf"{re.escape(p.stem)}{sep}(\d+)$", d.stem) for d in dirs]
+        nums = [int(m.group(1)) for m in matches if m]
+        n = max(nums) + 1 if nums else 2
+        p = p.parent / f"{p.stem}{sep}{n}"
+    if mkdir:
+        p.mkdir(parents=True, exist_ok=True)
+    return p
 # Set printoptions
 torch.set_printoptions(linewidth=320, precision=5, profile='long')
 np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5

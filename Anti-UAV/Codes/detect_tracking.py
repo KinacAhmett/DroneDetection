@@ -1,8 +1,8 @@
 from __future__ import division
 
 import sys, os
-sys.path.append(os.path.dirname(__file__))
-
+# Add parent directory to path so "Codes" is in the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import os
 import cv2
@@ -37,24 +37,8 @@ sys.modules.setdefault("tracking_wrapper.dronetracker",    importlib.import_modu
 from Codes.detect_wrapper.Detectoruav import DroneDetection
 from Codes.tracking_wrapper.dronetracker.trackinguav.evaluation.tracker import Tracker
 
-# Bu sys.path.append'lere artık gerek yok, ister sil ister bırak
-# sys.path.append(os.path.join(os.path.dirname(__file__),'detect_wrapper'))
-# sys.path.append(os.path.join(os.path.dirname(__file__),'tracking_wrapper\\dronetracker'))
-# sys.path.append(os.path.join(os.path.dirname(__file__),'tracking_wrapper\\drtracker'))
-
-# sys.path.append(r"C:\Users\aaa\Desktop\DetectionLib\DroneTracker")
-# sys.path.append(r"C:\Users\aaa\Desktop\DetectionLib\DroneDetector")
-
-
-# from detector import DroneDetection
-# from trackinguav.evaluation.tracker import Tracker
-
-from Codes.detect_wrapper.Detectoruav import DroneDetection
-from Codes.tracking_wrapper.dronetracker.trackinguav.evaluation.tracker import Tracker
-
-sys.path.append(os.path.join(os.path.dirname(__file__),'detect_wrapper'))
-sys.path.append(os.path.join(os.path.dirname(__file__),'tracking_wrapper\\dronetracker'))
-sys.path.append(os.path.join(os.path.dirname(__file__),'tracking_wrapper\\drtracker'))
+# All import paths have been consolidated at the top of the file
+# We only need one path for the Anti-UAV directory, which contains the Codes module
 
 
 import warnings
@@ -174,8 +158,8 @@ def global_init():
             fh = logging.FileHandler('c:/data/log.txt', mode='a')
             g_logger.addHandler(fh)
 
-        base = r"C:\Users\kinac\DroneDetection\Anti-UAV\Codes"
-        IRweights_path  = os.path.join(base, "detect_wrapper", "weights", "best.pt")
+        base = r"C:\Users\kinac\DroneDetection\runs\detect\subset36_run22"
+        IRweights_path  = os.path.join(base, "weights", "best.pt")
         RGBweights_path = IRweights_path  # TODO: farklı dosya kullanacaksan değiştir
 
         g_detector = DroneDetection(IRweights_path=IRweights_path,
@@ -185,10 +169,23 @@ def global_init():
     safe_log("global init done")
 
 def result_visualization(img, bbox):
-    magnification = 2
+    # Çözünürlük kontrolü ve büyütme ayarı
+    print("Visualization - frame shape:", img.shape)
+    # RGB için küçültme, IR için büyütme yok
     oframe = img.copy()
-    visuframe = cv2.resize(oframe, (oframe.shape[1]*magnification, oframe.shape[0]*magnification), cv2.INTER_LINEAR)
-    bbx=[i*magnification for i in bbox]
+    
+    if img.shape[0] > 800:  # RGB ise (büyükse küçült)
+        # Use integer dimensions for resize
+        new_width = int(oframe.shape[1] * 0.5)
+        new_height = int(oframe.shape[0] * 0.5)
+        magnification = 0.5
+    else:  # IR ise
+        new_width = int(oframe.shape[1])
+        new_height = int(oframe.shape[0])
+        magnification = 1
+        
+    visuframe = cv2.resize(oframe, (new_width, new_height), cv2.INTER_LINEAR)
+    bbx=[int(i*magnification) for i in bbox]
     cv2.rectangle(visuframe,(bbx[0],bbx[1]), (bbx[0]+bbx[2],bbx[1]+bbx[3]), (0,255,0), 2)            
     cv2.imshow("tracking", visuframe)
     cv2.waitKey(1)
@@ -224,21 +221,25 @@ def imgproc(data):
             else:
                 safe_log('{}'.format(IMG_TYPE))
                 init_box = g_detector.forward_IR(frame)
-                center_box = [320,256,0,0]  
+                center_box = [320,256,0,0]  # IR video merkezi
+                print(f"Merkez koordinatı: {center_box}, Tespit threshold: 40 piksel")  
             
             #print("2")
             print(count)
             if detect_first:
-                ## NO UAV Test 
-                # if init_box is None:
-                #     print('init_box is none, initialize!!!')
-                #     init_box = [327, 247, 16, 15]                
+                ## Debug için ilk tespit bilgisini yazdır
                 if init_box is not None:
-                    if distance_check(init_box, center_box,60) and count % 4 == 1:
+                    print(f"İlk tespit bulundu: {init_box}")
+                    print(f"Merkez mesafesi: {distance_check(init_box, center_box, 60)}")
+                    
+                    if distance_check(init_box, center_box,40) and count % 4 == 1:  # 60'tan 40'a düşürdük
+                        print("Tracking başlatılıyor...")
                         g_tracker.init_track(init_box,frame)
                         g_frame_counter = TRACK_MAX_COUNT
                         safe_log('init done') 
-                        detect_first=False             
+                        detect_first=False
+                    else:
+                        print("Tespit merkez dışında veya zamanlama uygun değil")             
                     
                     init_box = [int(x) for x in init_box]
                     if IMG_TYPE ==1 and count % 8 == 1:
@@ -353,7 +354,7 @@ def udpRecv(server, frameSize):
 
 if __name__ == "__main__":
     global_init()
-
+    """
     # ---- UDP İSTEMİYORSAN BU 4 SATIRI YORUMLA ----
     addr = '127.0.0.1'
     port = 9999
@@ -361,19 +362,19 @@ if __name__ == "__main__":
     detect_num = 5
     server = getUDPSocket(addr, port)  # bind server's address
     # ----------------------------------------------
-
+    """
     print("Start!!")
 
     # ---- TEST VİDEO ----
     import os
-    video_path = r"C:\Users\kinac\DroneDetection\Anti-UAV\Codes\testvideo\testvideo\ir1.mp4"
+    video_path = r"C:\Users\kinac\DroneDetection\Anti-UAV\Codes\testvideo\testvideo\n7.mp4"
     cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
 
     print("path:", video_path)
     print("exists:", os.path.exists(video_path))
     print("opened:", cap.isOpened())
     if not cap.isOpened():
-        raise RuntimeError("Video açılamadı! Yol/codec kontrol et.")
+        print("Video açılamadı! Yol/codec kontrol et.")
     # ---------------------
 
     while True:

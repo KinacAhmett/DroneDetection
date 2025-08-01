@@ -16,10 +16,10 @@ import torch.nn as nn
 
 from .common             import Conv, Bottleneck, SPP, DWConv, Focus, BottleneckCSP, Concat, NMS, autoShape
 from .experimental       import MixConv2d, CrossConv, C3
-from Codes.detect_wrapper.utils.general import (
+from detect_wrapper.utils.general import (
     check_anchor_order, make_divisible, check_file, set_logging
 )
-from Codes.detect_wrapper.utils.torch_utils import (
+from detect_wrapper.utils.torch_utils import (
     time_synchronized, fuse_conv_and_bn, model_info, scale_img,
     initialize_weights, select_device, copy_attr
 )
@@ -42,6 +42,13 @@ class Detect(nn.Module):
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
 
     def forward(self, x):
+
+        def forward(self, x):
+            out = torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1)
+            print(f"[DEBUG] Focus input shape: {x.shape} → after concat: {out.shape}")
+            return self.conv(out)
+
+
         # x = x.copy()  # for profiling
         z = []  # inference output
         self.training |= self.export
@@ -152,7 +159,10 @@ class Model(nn.Module):
         m = self.model[-1]  # Detect() module
         for mi, s in zip(m.m, m.stride):  # from
             b = mi.bias.view(m.na, -1)  # conv.bias(255) to (3,85)
-            b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+            b = b.clone().detach()
+            b[:, 4] = b[:, 4] + math.log(8 / (640 / s) ** 2)
+            b[:, 5:] = b[:, 5:] + (math.log(0.6 / (m.nc - 0.99)) if cf is None else torch.log(cf / cf.sum()))
+            mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
             b[:, 5:] += math.log(0.6 / (m.nc - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
             mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
@@ -209,6 +219,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
+        print(f"[DEBUG] Creating layer {i}: {m} — input ch: {ch}, args: {args}")
         m = eval(m) if isinstance(m, str) else m  # eval strings
         for j, a in enumerate(args):
             try:

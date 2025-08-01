@@ -1,0 +1,47 @@
+# IR Fine-Tuning Configuration
+# Optimized for grayscale/thermal imagery
+
+# Data configuration
+path: /path/to/ir_focused_dataset
+train: images/train
+val: images/val
+
+# Classes
+nc: 1  # number of classes
+names: ['drone']  # class names
+
+# IR-specific notes:
+# - HSV_H (Hue): Minimal because IR is mostly grayscale
+# - HSV_S (Saturation): Very low because IR has no color information
+# - HSV_V (Value): Higher because brightness/contrast crucial in IR
+# - Reduced geometric augmentations to preserve IR thermal signatures
+
+# Fine-tuning optimized hyperparameters (IR-focused)
+lr0: 0.0003          # Initial learning rate (lower for IR fine-tuning)
+lrf: 0.01            # Final learning rate factor
+momentum: 0.937      # SGD momentum
+weight_decay: 0.0005 # Optimizer weight decay
+warmup_epochs: 3     # Warmup epochs (slightly more for IR adaptation)
+warmup_momentum: 0.8 # Warmup initial momentum
+warmup_bias_lr: 0.1  # Warmup initial bias lr
+
+# Training settings (IR-optimized)
+epochs: 25           # Number of epochs (moderate for IR fine-tuning)
+batch_size: 14       # Batch size (slightly smaller for stability)
+imgsz: 640          # Image size
+save_period: 5      # Save checkpoint every 5 epochs
+patience: 8         # Early stopping patience (IR converges differently)
+
+# Data augmentation (IR-optimized for grayscale/thermal)
+hsv_h: 0.005        # Image HSV-Hue augmentation (minimal - IR is mostly grayscale)
+hsv_s: 0.05         # Image HSV-Saturation augmentation (very low - IR has no color)
+hsv_v: 0.4          # Image HSV-Value augmentation (higher - brightness important in IR)
+degrees: 3.0        # Image rotation (+/- deg) (less rotation for IR)
+translate: 0.03     # Image translation (+/- fraction) (reduced for IR)
+scale: 0.15         # Image scale (+/- gain) (conservative for IR)
+shear: 0.5          # Image shear (+/- deg) (reduced - IR shapes important)
+perspective: 0.0    # Image perspective (disabled - IR geometry crucial)
+flipud: 0.0         # Image flip up-down (disabled - IR context matters)
+fliplr: 0.2         # Image flip left-right (reduced - IR scenes can be asymmetric)
+mosaic: 0.2         # Image mosaic (reduced - IR textures different)
+mixup: 0.02         # Image mixup (minimal - IR blending can confuse)
