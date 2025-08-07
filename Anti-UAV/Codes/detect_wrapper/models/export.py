@@ -3,15 +3,16 @@
 Usage:
     $ export PYTHONPATH="$PWD" && python models/export.py --weights ./weights/yolov5s.pt --img 640 --batch 1
 """
-
+# Standard libraries
 import argparse
 import sys
 import time
 
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
-
+# Scientific and tensor libraries
 import torch
 import torch.nn as nn
+# Project specific imports
 
 import models
 from .experimental import attempt_load

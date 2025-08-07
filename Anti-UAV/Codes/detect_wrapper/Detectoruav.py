@@ -14,8 +14,8 @@ class DroneDetection:
         torch.backends.cudnn.benchmark = True
 
         self.yolo = YOLO(IRweights_path)
-        self.conf_thresh = 0.05   # confidences eşiği
-        self.iou_thresh  = 0.20
+        self.conf_thresh = 0.3   # Daha düşük confidence threshold
+        self.iou_thresh  = 0.45   # NMS threshold
         # YOLO11 nano modelini indir ve yükle (COCO ön-eğitimli)
         """
         self.yolo = YOLO('yolo11n.pt')
@@ -41,7 +41,15 @@ class DroneDetection:
            verbose=False)
         
         if results and len(results[0].boxes) > 0:
-            x1, y1, x2, y2 = results[0].boxes.xyxy[0].cpu().numpy()
+            # En yüksek confidence'a sahip detection'u seç
+            boxes = results[0].boxes
+            confidences = boxes.conf.cpu().numpy()
+            best_idx = np.argmax(confidences)
+            
+            x1, y1, x2, y2 = boxes.xyxy[best_idx].cpu().numpy()
+            confidence = confidences[best_idx]
+            
+            print(f"IR Detection - Confidence: {confidence:.3f}, Box: [{int(x1)}, {int(y1)}, {int(x2-x1)}, {int(y2-y1)}]")
             return [int(x1), int(y1), int(x2 - x1), int(y2 - y1)]
         return None
 
@@ -58,7 +66,15 @@ class DroneDetection:
            verbose=False
        )
         if results and len(results[0].boxes) > 0:
-            x1, y1, x2, y2 = results[0].boxes.xyxy[0].cpu().numpy()
+            # En yüksek confidence'a sahip detection'u seç
+            boxes = results[0].boxes
+            confidences = boxes.conf.cpu().numpy()
+            best_idx = np.argmax(confidences)
+            
+            x1, y1, x2, y2 = boxes.xyxy[best_idx].cpu().numpy()
+            confidence = confidences[best_idx]
+            
+            print(f"RGB Detection - Confidence: {confidence:.3f}, Box: [{int(x1)}, {int(y1)}, {int(x2-x1)}, {int(y2-y1)}]")
             return [int(x1), int(y1), int(x2 - x1), int(y2 - y1)]
         return None
 

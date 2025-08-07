@@ -1,4 +1,4 @@
-from .detect_model import *
+# Standard libraries
 
 import argparse
 import logging
@@ -10,10 +10,13 @@ import math
 
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 logger = logging.getLogger(__name__)
+# Scientific and tensor libraries
 
 import torch
 import torch.nn as nn
+# Project specific imports
 
+from .detect_model import *
 from .common             import Conv, Bottleneck, SPP, DWConv, Focus, BottleneckCSP, Concat, NMS, autoShape
 from .experimental       import MixConv2d, CrossConv, C3
 from detect_wrapper.utils.general import (
@@ -23,9 +26,14 @@ from detect_wrapper.utils.torch_utils import (
     time_synchronized, fuse_conv_and_bn, model_info, scale_img,
     initialize_weights, select_device, copy_attr
 )
+sys.path.append('./')  # to run '$ python *.py' files in subdirectories
+logger = logging.getLogger(__name__)
 
 
 class Detect(nn.Module):
+    """
+    Detection layer that processes feature maps to produce bounding boxes.
+    """
     stride = None  # strides computed during build
     export = False  # onnx export
 
@@ -42,6 +50,9 @@ class Detect(nn.Module):
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
 
     def forward(self, x):
+        """
+        Process input feature maps to produce detection outputs.
+        """
 
         def forward(self, x):
             out = torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1)
@@ -70,12 +81,21 @@ class Detect(nn.Module):
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
+        """
+        Create a grid of (x,y) coordinates for anchor positioning.
+        """
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
 class Model(nn.Module):
+    """
+    YOLOv5 detection model with customizable parameters from YAML config.
+    """
     def __init__(self, cfg='yolov5s.yaml', ch=3, nc=None):  # model, input channels, number of classes
+        """
+        Initialize YOLOv5 model from YAML configuration file.
+        """
         super(Model, self).__init__()
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
@@ -109,6 +129,9 @@ class Model(nn.Module):
         print('')
 
     def forward(self, x, augment=False, profile=False):
+        """
+        Run forward pass through the model with optional augmentation and profiling.
+        """
         if augment:
             img_size = x.shape[-2:]  # height, width
             s = [1, 0.83, 0.67]  # scales
@@ -129,6 +152,9 @@ class Model(nn.Module):
             return self.forward_once(x, profile)  # single-scale inference, train
 
     def forward_once(self, x, profile=False):
+        """
+        Run forward pass through the model once.
+        """
         y, dt = [], []  # outputs
         for m in self.model:
             if m.f != -1:  # if not from previous layer
@@ -154,6 +180,9 @@ class Model(nn.Module):
         return x
 
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency
+        """
+        Initialize biases for the Detect module based on class frequency.
+        """
         # https://arxiv.org/abs/1708.02002 section 3.3
         # cf = torch.bincount(torch.tensor(np.concatenate(dataset.labels, 0)[:, 0]).long(), minlength=nc) + 1.
         m = self.model[-1]  # Detect() module
@@ -178,6 +207,9 @@ class Model(nn.Module):
     #             print('%10.3g' % (m.w.detach().sigmoid() * 2))  # shortcut weights
 
     def fuse(self):  # fuse model Conv2d() + BatchNorm2d() layers
+        """
+        Fuse Conv2d and BatchNorm2d layers for faster inference.
+        """
         print('Fusing layers... ')
         for m in self.model.modules():
             if type(m) is Conv and hasattr(m, 'bn'):
@@ -188,6 +220,9 @@ class Model(nn.Module):
         return self
 
     def nms(self, mode=True):  # add or remove NMS module
+        """
+        Add or remove Non-Maximum Suppression module.
+        """
         present = type(self.model[-1]) is NMS  # last layer is NMS
         if mode and not present:
             print('Adding NMS... ')
@@ -202,6 +237,9 @@ class Model(nn.Module):
         return self
 
     def autoshape(self):  # add autoShape module
+        """
+        Add autoShape module for automatic input reshaping.
+        """
         print('Adding autoShape... ')
         m = autoShape(self)  # wrap model
         copy_attr(m, self, include=('yaml', 'nc', 'hyp', 'names', 'stride'), exclude=())  # copy attributes
@@ -212,6 +250,9 @@ class Model(nn.Module):
 
 
 def parse_model(d, ch):  # model_dict, input_channels(3)
+    """
+    Parse model configuration dictionary to create neural network.
+    """
     logger.info('\n%3s%18s%3s%10s  %-40s%-30s' % ('', 'from', 'n', 'params', 'module', 'arguments'))
     anchors, nc, gd, gw = d['anchors'], d['nc'], d['depth_multiple'], d['width_multiple']
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
