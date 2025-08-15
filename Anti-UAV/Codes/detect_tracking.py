@@ -210,7 +210,7 @@ def global_init():
             g_logger.addHandler(fh)
 
         # Define model weights paths
-        base = r"C:\Users\kinac\DroneDetection\runs\detect\subset36_run22\weights"
+        base = r"C:\Users\kinac\DroneDetection\Anti-UAV\runs\detect\384k_Full\weights"
         IRweights_path  = os.path.join(base, "best.pt")
         RGBweights_path = IRweights_path  # TODO: Use different file if needed
         
