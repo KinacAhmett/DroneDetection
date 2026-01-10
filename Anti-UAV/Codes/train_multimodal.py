@@ -5,12 +5,15 @@ def yolo_collate(batch):
         imgs = torch.stack(imgs, 0)
         return imgs, list(targets)
 
-
-import os, sys, argparse, torch, csv
-from detect_wrapper.utils.general import non_max_suppression, scale_coords
-from torch.utils.tensorboard import SummaryWriter
+# Standard libraries
+import os, sys, argparse, csv
 from pathlib import Path
+# Scientific and tensor libraries
+import torch
+from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
+# Project specific imports
+from detect_wrapper.utils.general import non_max_suppression, scale_coords
 from detect_wrapper.dataset_multimodal import MultimodalYOLODataset
 from detect_wrapper.models.yolo import Model
 from detect_wrapper.utils.general import increment_path
@@ -21,6 +24,9 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 def train():
+    """
+    Main training function for multimodal (RGB+IR) YOLO model.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg',        type=str, default='models/detectx_rgb_ir.yaml')
     parser.add_argument('--data-root',  type=str, required=True)
@@ -36,6 +42,7 @@ def train():
     # ---------------- Device & Model ----------------
     device = select_device(opt.device)
     model  = Model(opt.cfg, ch=opt.channels).to(device)
+    # Load pretrained weights if specified
     if opt.weights and Path(opt.weights).exists():
         ckpt = torch.load(opt.weights, map_location=device)
         model.load_state_dict(ckpt['model'])
@@ -46,6 +53,7 @@ def train():
         train_ds, batch_size=opt.batch_size, shuffle=True,
         num_workers=0, pin_memory=True, collate_fn=yolo_collate)
 
+    # Initialize validation dataloader if validation path provided
     if opt.val_root:
         val_ds = MultimodalYOLODataset(opt.val_root, img_size=opt.img_size)
         val_loader = DataLoader(val_ds, batch_size=1, shuffle=False,
@@ -56,9 +64,11 @@ def train():
     # ---------------- Optimizer & Loss --------------
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01,
                                 momentum=0.937, weight_decay=5e-4)
+    # Initialize YOLO detection loss function
     criterion = DetectionLoss(model)   # ✨ tam YOLO kaybı (box+obj+cls+dfl)
 
     # ---------------- Loggers -----------------------
+    # Configure optimizer with momentum and weight decay
     save_dir = Path(increment_path('runs/train', exist_ok=False, mkdir=True))
     (save_dir / 'tb').mkdir(parents=True, exist_ok=True)
     tb = SummaryWriter(log_dir=str(save_dir / 'tb'))

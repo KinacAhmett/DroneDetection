@@ -7,7 +7,18 @@ import torchvision.transforms as T
 
 
 class MultimodalYOLODataset(Dataset):
+    """
+    Custom PyTorch Dataset for multimodal (RGB + IR) drone detection.
+    Loads paired visible and infrared images along with YOLO-format labels.
+    """
     def __init__(self, root_dir, img_size=640, repeat_ir=3, transforms=None):
+        """
+        Args:
+            root_dir (str or Path): Root directory containing scene folders.
+            img_size (int): Output image size (images will be resized to square).
+            repeat_ir (int): Number of times to repeat IR channel for concatenation.
+            transforms (callable, optional): Optional transform to be applied on a sample.
+        """
         self.samples = []
         root = Path(root_dir)
         for scene in sorted(root.iterdir()):
@@ -35,6 +46,12 @@ class MultimodalYOLODataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
+        """
+        Load and return a sample (multimodal image tensor and targets) at the given index.
+        Returns:
+            img_6ch (Tensor): Stacked RGB + repeated IR image tensor.
+            targets (Tensor): Bounding box targets in YOLO format.
+        """
         rgb_path, ir_path, label_path = self.samples[idx]
         rgb_img = Image.open(rgb_path).convert("RGB")
         ir_img  = Image.open(ir_path).convert("L")

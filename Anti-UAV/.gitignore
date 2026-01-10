@@ -18,3 +18,13 @@ Codes/testvideo/
 
 # Misc
 allfiles*.txt
+wandB.py
+wandBB.py
+wandB_images.py
+
+# wandb artifacts and logs
+wandb/
+debug.log
+output.log
+run-*.wandb
+wandb-*

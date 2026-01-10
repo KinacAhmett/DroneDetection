@@ -1,0 +1,31 @@
+# Custom sweep hyperparameters for evolution
+lr0: 0.0005  # initial learning rate (0.0001 - 0.01)
+lrf: 0.1     # final learning rate fraction (0.01 - 0.5)
+momentum: 0.8  # SGD momentum (0.6 - 0.98)
+weight_decay: 0.0005  # optimizer weight decay (0.00001 - 0.01)
+
+warmup_epochs: 3.0
+warmup_momentum: 0.5
+warmup_bias_lr: 0.05
+
+box: 0.05  # box loss gain
+cls: 0.3   # cls loss gain
+cls_pw: 1.0  # cls positive weight
+obj: 0.5   # obj loss gain (scale with pixels)
+obj_pw: 1.0  # obj positive weight
+iou_t: 0.2  # IoU training threshold
+anchor_t: 4.0  # anchor-multiple threshold
+fl_gamma: 0.0  # focal loss gamma
+
+hsv_h: 0.015  # image HSV-Hue augmentation (0 - 0.1)
+hsv_s: 0.7    # HSV-Saturation augmentation (0 - 0.9)
+hsv_v: 0.4    # HSV-Value augmentation (0 - 0.9)
+degrees: 0.3  # image rotation (+/- deg)
+translate: 0.2  # image translation (+/- fraction)
+scale: 0.7     # image scale (+/- gain)
+shear: 0.2     # image shear (+/- deg)
+perspective: 0.0  # image perspective (+/- fraction)
+flipud: 0.0   # flip up-down (probability)
+fliplr: 0.5   # flip left-right (probability)
+mosaic: 1.0   # mosaic augmentation (probability)
+mixup: 0.2    # mixup augmentation (probability)

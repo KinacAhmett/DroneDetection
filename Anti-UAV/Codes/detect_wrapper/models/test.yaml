@@ -1,0 +1,4 @@
+train: C:\Users\kinac\DroneDetection\Anti-UAV\data\Anti-UAV-RGBT\train_test
+val: C:\Users\kinac\DroneDetection\Anti-UAV\data\Anti-UAV-RGBT\val_test
+nc: 1
+names: [drone]

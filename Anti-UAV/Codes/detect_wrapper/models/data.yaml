@@ -1,4 +1,4 @@
-train: C:\Users\kinac\DroneDetection\Anti-UAV\data\Anti-UAV-RGBT\subset36_IRfinetune
-val: C:\Users\kinac\DroneDetection\Anti-UAV\data\Anti-UAV-RGBT\subset36_IRfinetuneValue
+train: C:\Users\kinac\DroneDetection\Anti-UAV\data\Anti-UAV-RGBT\train
+val: C:\Users\kinac\DroneDetection\Anti-UAV\data\Anti-UAV-RGBT\val64k
 nc: 1
 names: [drone]
